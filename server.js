@@ -8,7 +8,7 @@ server.use(express.json());
 
 // GET request
 server.get('/', (req, res) => {
-   db('accounts').from("accounts")
+   db('accounts')
       .then(accounts => {
          res.status(200).json(accounts);
       })
@@ -20,11 +20,16 @@ server.get('/', (req, res) => {
 // GET by id
 server.get('/:id', (req, res) => {
    const dataId = req.params.id;
-   // Need validation...
 
-   db('accounts').where({ id: dataId })
+   db('accounts')
+      .where({ id: dataId })
+      .first()
       .then(account => {
-         res.status(200).json(account);
+         if (account) {
+            res.status(200).json(account);
+         } else {
+            res.status(404).json({ message: "Account not found" });
+         }
       })
       .catch(error => {
          res.status(500).json({ message: "Account could not be retrieved." });
@@ -37,9 +42,19 @@ server.post("/", (req, res) => {
 
    if (postData.name && postData.budget) {
 
-      db('accounts').insert(postData, "id")
-         .then(post => {
-            res.status(201).json(post);
+      db('accounts')
+         .insert(postData, "id")
+         .then(ids => {
+            const id = ids[0];
+
+            // Return an object instead of an array of ids
+            return db('accounts')
+               .select('id', 'name', 'budget')
+               .where({ id })
+               .first()
+               .then(account => {
+                  res.status(201).json(account);
+               })
          })
          .catch(error => {
             res.status(500).json({ message: "Account could not be added" });
@@ -54,9 +69,9 @@ server.post("/", (req, res) => {
 server.delete('/:id', (req, res) => {
    const dataId = req.params.id;
 
-   // Need to validate id....
-
-   db('accounts').where({ id: dataId }).del()
+   db('accounts')
+      .where({ id: dataId })
+      .del()
       .then(count => {
          res.status(200).json(count);
       })
@@ -71,10 +86,16 @@ server.put('/:id', (req, res) => {
    const updates = req.body;
 
    if (updates.name || updates.budget) {
-      
-      db('accounts').where({id: dataId}).update(updates)
+
+      db('accounts')
+         .where({ id: dataId })
+         .update(updates)
          .then(count => {
-            res.status(200).json(count);
+            if (count > 0) { // Validation
+               res.status(200).json(count);
+            } else {
+               res.status(400).json({ message: "Account could not be deleted." });
+            }
          })
          .catch(error => {
             res.status(500).json({ message: "Problem updating account." });
