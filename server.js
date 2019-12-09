@@ -55,7 +55,7 @@ server.delete('/:id', (req, res) => {
    const dataId = req.params.id;
 
    // Need to validate id....
-   
+
    db('accounts').where({ id: dataId }).del()
       .then(count => {
          res.status(200).json(count);
@@ -66,5 +66,24 @@ server.delete('/:id', (req, res) => {
 })
 
 // PUT request
+server.put('/:id', (req, res) => {
+   const dataId = req.params.id;
+   const updates = req.body;
+
+   if (updates.name || updates.budget) {
+      
+      db('accounts').where({id: dataId}).update(updates)
+         .then(count => {
+            res.status(200).json(count);
+         })
+         .catch(error => {
+            res.status(500).json({ message: "Problem updating account." });
+         });
+
+   } else {
+      res.status(400).json({ message: "Please enter a name or budget." });
+   }
+
+})
 
 module.exports = server;
